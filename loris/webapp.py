@@ -271,6 +271,11 @@ class LorisRequest(object):
         elif self._path[1:] == 'favicon.ico':
             self.request_type = 'favicon'
             return
+        
+        elif self._path[1:] == 'trans.png':
+            self.request_type = 'transfer_cookie'
+            return
+        
 
         #check for image request
         #Note: this doesn't guarantee that all the parameters have valid values - see regexes in constants.py.
@@ -399,6 +404,9 @@ class Loris(object):
 
         if request_type == 'favicon':
             return self.get_favicon(request)
+        
+        if request_type == 'transfer_cookie':
+            return self.transfer_cookie(request)
 
         if request_type == 'bad_image_request':
             return BadRequestResponse()
@@ -458,13 +466,21 @@ class Loris(object):
         return r
 
     def get_favicon(self, request):
-        f = path.join(self.www_dp, 'icons', 'loris-icon.png')
+        f = path.join(self.www_dp, 'icons', 'favicon.ico')
         r = Response(open(f, 'rb'), content_type='image/x-icon')
         if self.enable_caching:
             r.add_etag()
             r.make_conditional(request)
         return r
 
+    def transfer_cookie(self, request):
+        # current_cookie =  request.cookies.get("_diggit-hydra_session")
+        f = path.join(self.www_dp, 'icons', 'favicon.ico')
+        r = Response(open(f, 'rb'), content_type='image/x-icon')
+        r.set_cookie("_diggit-hydra_session", value=request.args['v'],  path='/')
+        return r
+    
+    
     def get_info(self, request, ident, base_uri):
         try:
             info, last_mod = self._get_info(ident,request,base_uri)

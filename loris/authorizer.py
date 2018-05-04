@@ -7,6 +7,7 @@ from __future__ import absolute_import
 
 from logging import getLogger
 import requests
+import json
 
 try:
     from urllib.parse import urlparse
@@ -332,15 +333,18 @@ class RulesAuthorizer(_AbstractAuthorizer):
             return {"status": "deny"}
 
         okay = set(roles).intersection(userroles)
-        logger.debug("roles: %r  // user: %r // intersection: %r" % (roles, userroles, okay))
+        logger.debug("roles2: %r  // user: %r // intersection: %r" % (roles, userroles, okay))
 
         if okay:
+            logger.debug("Returning OK since okay wasn't false")
             return {"status": "ok"}
         else:
             loc = self.find_best_tier(info.auth_rules.get('tiers', []), userroles)
             if loc:
+                logger.debug("Returning Redirect")
                 return {"status": "redirect", "location": "%s/info.json" % loc}            
             else:
+                logger.debug("Returning Deny")
                 return {"status": "deny"} 
 
     def get_services_info(self, info):
@@ -381,29 +385,35 @@ class ExternalAuthorizer(_AbstractAuthorizer):
         super(ExternalAuthorizer, self).__init__(config)
         self.authorized_url = config.get('authorized_url', '')
         self.protected_url = config.get('protected_url', '')
-        self.services_url = config.get('services_url', '')
+        self.allow_access_ips = config.get('allow_access_ips', '').split(",")
 
-    def is_protected(self, info):
+    def is_protected(self, info): 
         # http://somewhere.org/path/to/service
         # using POST to ensure data doesn't end up in logs
         data = {
             'id': info.ident,
             'fp': info.src_img_fp,
         }
-        requests.post(self.protected_url, data=data)
+        response = requests.post(self.protected_url, data=data).text
+        return bool(response == 'true')
+        
 
-    def is_authorized(self, info, cookie="", token=""):
+    def is_authorized(self, info, request):
+        if ( request.remote_addr in self.allow_access_ips ):
+            return {"status":"ok"}
         data = {
             'id': info.ident,
             'fp': info.src_img_fp,
-            'cookie': cookie,
-            'token': token,
+            'ip': request.remote_addr,
+            'cookie': request.cookies.get("_diggit-hydra_session") 
         }
-        requests.post(self.authorized_url, data=data)
+        cookie = {'_diggit-hydra_session': request.cookies.get("_diggit-hydra_session")}
+        response = requests.post(self.authorized_url, cookies=cookie, data=data).text
+        if (response == 'true'):        
+            return {"status": "ok"}
+        else:        
+            return {"status": "deny"}
+             
 
     def get_services_info(self, info):
-        data = {
-            'id': info.ident,
-            'fp': info.src_img_fp,
-        }
-        requests.post(self.services_url, data=data)
+        return None
