@@ -345,7 +345,10 @@ class Loris(object):
         if self.enable_caching:
             self.info_cache = InfoCache(self.app_configs['img_info.InfoCache']['cache_dp'])
             cache_dp = self.app_configs['img.ImageCache']['cache_dp']
-            self.img_cache = img.ImageCache(cache_dp)
+            disable_symlinks = False
+            if 'disable_symlinks' in self.app_configs['img.ImageCache']:
+                disable_symlinks = self.app_configs['img.ImageCache']['disable_symlinks']
+            self.img_cache = img.ImageCache(cache_dp, disable_symlinks)
 
     def _load_transformers(self):
         tforms = self.app_configs['transforms']

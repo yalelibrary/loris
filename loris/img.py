@@ -115,8 +115,9 @@ class ImageRequest(object):
 class ImageCache(dict):
     '''
     '''
-    def __init__(self, cache_root):
+    def __init__(self, cache_root, disable_symlinks):
         self.cache_root = cache_root
+        self.disable_symlinks = disable_symlinks
 
     def __contains__(self, image_request):
         return path.exists(self.get_request_cache_path(image_request))
@@ -147,7 +148,7 @@ class ImageCache(dict):
         # So: when Loris#_make_image is called, it gets a path from
         # ImageCache#get_canonical_cache_path and passes that to the
         # transformer.
-        if not image_request.is_canonical(image_info):
+        if not self.disable_symlinks and not image_request.is_canonical(image_info):
             requested_fp = self.get_request_cache_path(image_request)
             symlink(src=canonical_fp, dst=requested_fp)
 
