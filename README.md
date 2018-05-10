@@ -1,5 +1,5 @@
 
-!Yale Customizations
+Yale University Library Customizations
 =============================================================================
 There are a few minor customizations to help with our environment.
  * Added some flexibility on the mimetypes for jpg and tiff since some of our images have a non-conventional mimetype in Fedora
