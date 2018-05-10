@@ -1,3 +1,12 @@
+
+!Yale Customizations
+=============================================================================
+There are a few minor customizations to help with our environment.
+ * Added some flexibility on the mimetypes for jpg and tiff since some of our images have a non-conventional mimetype in Fedora
+ * Added option to disable symlinks in the cache, which is necessary when the underlying filesystem does not allow them. This may slow things slightly since new requests will have to be converted to their canonical representation before they can find the item in the cache.
+ * Added an authorizer and a cookie passing request.  Client pass the session cookie from the webapp to the Loris server's domain through an image request. When requests come in for an image, Loris makes an HTTP call to the webapp server with the cookie and client IP, the webapp lets loris know if the user with that session cookie and IP has access to the image.
+
+
 ![loris icon](www/icons/loris-circle-small.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
