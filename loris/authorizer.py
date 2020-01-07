@@ -395,7 +395,7 @@ class ExternalAuthorizer(_AbstractAuthorizer):
             'fp': info.src_img_fp,
         }
         response = requests.post(self.protected_url, data=data).text
-        return bool(response == 'true')
+        return bool(response != 'false')
         
 
     def is_authorized(self, info, request):
