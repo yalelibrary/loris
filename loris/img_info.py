@@ -218,6 +218,14 @@ class ImageInfo(JP2Extractor, object):
         self.color_profile_bytes = None
         self.profile.description['qualities'] = PIL_MODES_TO_QUALITIES[im.mode]
         self.sizes = []
+        ##checks for multiframe tiff
+        try:
+            for x in range(im.n_frames):
+                im.seek(x)
+                width , height = im.size
+                self.sizes += [{'width': width, 'height': height}]
+        except:
+            pass
 
     def _from_jp2(self, fp):
         '''Get info about a JP2.
