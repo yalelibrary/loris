@@ -398,9 +398,10 @@ class ExternalAuthorizer(_AbstractAuthorizer):
             'id': ident,
             'fp': info.src_img_fp,
             'ip': request.remote_addr,
-            'cookie': request.cookies.get("_diggit-hydra_session")
+            'cookie': request.cookies.get("_authorization_cookie")
         }
-        cookie = {'_diggit-hydra_session': request.cookies.get("_diggit-hydra_session")}
+        cookie = {'_diggit-hydra_session': request.cookies.get("_authorization_cookie")}
+
         response = requests.post(self.authorized_url, cookies=cookie, data=data).text
         if (response == 'true'):
             return {"status": "ok"}
