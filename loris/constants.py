@@ -16,9 +16,11 @@ __formats = (
     ('gif','image/gif'),
     ('jp2','image/jp2'),
     ('jpg','image/jpeg'),
+    ('jpg','image/jpg'),
     ('pdf','application/pdf'),
     ('png','image/png'),
     ('tif','image/tiff'),
+    ('tif','image/tif'),
     ('webp','image/webp'),
 )
 
