@@ -50,12 +50,14 @@ class _AbstractAuthorizer(object):
             if not v:
                 del svc[k]
 
-    def is_protected(self, info):
+    def is_protected(self, info, ident):
         """
 
         Args:
             info (ImageInfo):
                 The ImageInfo description of the image
+            ident:
+                The id of the image
         Returns:
             bool
         """
@@ -76,12 +78,14 @@ class _AbstractAuthorizer(object):
         cn = self.__class__.__name__
         raise NotImplementedError('get_services_info() not implemented for %s' % (cn,))
 
-    def is_authorized(self, info, request):
+    def is_authorized(self, info, request, ident):
         """
 
         Args:
             info (ImageInfo):
                 The ImageInfo description of the image
+            ident:
+                The image id
             request (Request):
                 The wsgi request object
         Returns:
@@ -95,10 +99,10 @@ class NullAuthorizer(_AbstractAuthorizer):
     """
     Everything is permissible
     """
-    def is_protected(self, info):
+    def is_protected(self, info, ident):
         return False
 
-    def is_authorized(self, info, request):
+    def is_authorized(self, info, request, ident):
         # Should never be called
         return {"status": "ok"}
 
@@ -110,10 +114,10 @@ class NooneAuthorizer(_AbstractAuthorizer):
     """
     Everything is forbidden
     """
-    def is_protected(self, info):
+    def is_protected(self, info, ident):
         return True
 
-    def is_authorized(self, info, request):
+    def is_authorized(self, info, request, ident):
         return {"status": "deny"}
 
     def get_services_info(self, info):
@@ -139,10 +143,10 @@ class SingleDegradingAuthorizer(_AbstractAuthorizer):
         self.redirect_fp = config.get('redirect_target', 
             '67352ccc-d1b0-11e1-89ae-279075081939.jp2')
 
-    def is_protected(self, info):
+    def is_protected(self, info, ident):
         return not info.src_img_fp.endswith(self.redirect_fp)
 
-    def is_authorized(self, info, request):
+    def is_authorized(self, info, request, ident):
         # Won't be called for the redirect img, as it's not protected
         return {"status": "redirect", 
             "location": "%s/info.json" % self.redirect_fp}    
@@ -305,13 +309,13 @@ class RulesAuthorizer(_AbstractAuthorizer):
         # No tier is possible with current roles, deny
         return ""
 
-    def is_protected(self, info):
+    def is_protected(self, info, ident):
         # Now we can check info.auth_rules
         # Protected if there's an 'allowed' key, with a non-false value 
         logger.debug("Called is_protected with %r" % info.auth_rules)
         return bool('allowed' in info.auth_rules and info.auth_rules['allowed'])
 
-    def is_authorized(self, info, request):
+    def is_authorized(self, info, request, ident):
         if not "allowed" in info.auth_rules:
             # We shouldn't be here, but just check in case
             return {"status": "ok"}
@@ -374,29 +378,35 @@ class ExternalAuthorizer(_AbstractAuthorizer):
         super(ExternalAuthorizer, self).__init__(config)
         self.authorized_url = config.get('authorized_url', '')
         self.protected_url = config.get('protected_url', '')
-        self.services_url = config.get('services_url', '')
+        self.allow_access_ips = config.get('allow_access_ips', '').split(",")
 
-    def is_protected(self, info):
+    def is_protected(self, info, ident):
         # http://somewhere.org/path/to/service
         # using POST to ensure data doesn't end up in logs
         data = {
-            'id': info.ident,
+            'id': ident,
             'fp': info.src_img_fp,
         }
-        requests.post(self.protected_url, data=data)
+        response = requests.post(self.protected_url, data=data).text
+        return bool(response == 'true')
 
-    def is_authorized(self, info, cookie="", token=""):
+
+    def is_authorized(self, info, request, ident):
+        if ( request.remote_addr in self.allow_access_ips ):
+            return {"status":"ok"}
         data = {
-            'id': info.ident,
+            'id': ident,
             'fp': info.src_img_fp,
-            'cookie': cookie,
-            'token': token,
+            'ip': request.remote_addr,
+            'cookie': request.cookies.get("_diggit-hydra_session")
         }
-        requests.post(self.authorized_url, data=data)
+        cookie = {'_diggit-hydra_session': request.cookies.get("_diggit-hydra_session")}
+        response = requests.post(self.authorized_url, cookies=cookie, data=data).text
+        if (response == 'true'):
+            return {"status": "ok"}
+        else:
+            return {"status": "deny"}
+
 
     def get_services_info(self, info):
-        data = {
-            'id': info.ident,
-            'fp': info.src_img_fp,
-        }
-        requests.post(self.services_url, data=data)
+        return None

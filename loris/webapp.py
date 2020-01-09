@@ -517,8 +517,8 @@ class Loris(object):
         ims = parse_date(ims_hdr)
         last_mod = parse_date(http_date(last_mod)) # see note under get_img
 
-        if self.authorizer and self.authorizer.is_protected(info):
-            authed = self.authorizer.is_authorized(info, request)
+        if self.authorizer and self.authorizer.is_protected(info, ident):
+            authed = self.authorizer.is_authorized(info, request, ident)
             if authed['status'] == 'deny':
                 r.status_code = 401
                 # trash If-Mod-Since to ensure no 304
@@ -560,7 +560,7 @@ class Loris(object):
         info = self.resolver.resolve(self, ident, base_uri)
 
         # Maybe inject services before caching
-        if self.authorizer and self.authorizer.is_protected(info):
+        if self.authorizer and self.authorizer.is_protected(info, ident):
             # Call get_services to inject
             svcs = self.authorizer.get_services_info(info)
             if svcs and 'service' in svcs:
@@ -623,8 +623,8 @@ class Loris(object):
         except ImageInfoException as ie:
             return ServerSideErrorResponse(ie)
 
-        if self.authorizer and self.authorizer.is_protected(info):
-            authed = self.authorizer.is_authorized(info, request)
+        if self.authorizer and self.authorizer.is_protected(info, ident):
+            authed = self.authorizer.is_authorized(info, request, ident)
 
             if authed['status'] != 'ok':
                 # Images don't redirect, they just deny out
