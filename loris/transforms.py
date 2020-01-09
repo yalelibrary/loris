@@ -11,6 +11,7 @@ import platform
 import random
 import string
 import subprocess
+import pdb
 
 try:
     from cStringIO import BytesIO
@@ -56,6 +57,28 @@ def _validate_color_profile_conversion_config(config):
             'LittleCMS support.  See http://www.littlecms.com/ for instructions.'
         )
 
+def select_from_ptiff( im, image_request,image_info):#If it is a multiframe tiff
+    try:
+        index = 0
+        ## if height is found
+        if 'height' in image_info.sizes[0]:
+            for i in range(im.n_frames):
+                frame_dim = list(image_info.sizes[i].values())
+                frame_dim = str(frame_dim[0])+','+str(frame_dim[1])
+                if frame_dim == image_request.size_value:
+                   index = i # match one of the other tiffs
+        else:
+            for i in range(im.n_frames):
+                frame_dim = str(image_info.sizes[i]['width'])
+
+                if frame_dim == image_request.size_value:
+                    index = i # match one of the other tiffs
+
+        im.seek(index) ## equip the appropriate tiff
+    except:
+        pass
+
+    return im
 
 class _AbstractTransformer(object):
     def __init__(self, config):
@@ -105,6 +128,12 @@ class _AbstractTransformer(object):
             void (puts an image at target_fp)
 
         '''
+
+        ## if ptiff is enabled
+        ptiff_handling = self.config['ptiff'] and im.format == 'TIFF' and image_request.size_value != 'full'
+        if ptiff_handling:
+           im = select_from_ptiff(im, image_request, image_info)
+
         region_param = image_request.region_param(image_info=image_info)
 
         if crop and region_param.canonical_uri_value != 'full':
