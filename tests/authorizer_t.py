@@ -29,7 +29,7 @@ class Test_AbstractAuthorizer(unittest.TestCase):
     def test_is_protected_is_notimplementederror(self):
         aa = _AbstractAuthorizer({})
         with pytest.raises(NotImplementedError):
-            aa.is_protected(info={})
+            aa.is_protected(info={}, ident=None)
 
     def test_get_services_info_is_notimplementederror(self):
         aa = _AbstractAuthorizer({})
@@ -39,7 +39,7 @@ class Test_AbstractAuthorizer(unittest.TestCase):
     def test_is_authorized_is_notimplementederror(self):
         aa = _AbstractAuthorizer({})
         with pytest.raises(NotImplementedError):
-            aa.is_authorized(info={}, request=None)
+            aa.is_authorized(info={}, request=None, ident=None)
 
 
 class Test_NullAuthorizer(unittest.TestCase):
@@ -52,10 +52,10 @@ class Test_NullAuthorizer(unittest.TestCase):
         self.request = MockRequest()
 
     def test_is_protected(self):
-        self.assertEqual(self.authorizer.is_protected(self.info), False)
+        self.assertEqual(self.authorizer.is_protected(self.info, None), False)
 
     def test_is_authorized(self):
-        authd = self.authorizer.is_authorized(self.info, self.request)
+        authd = self.authorizer.is_authorized(self.info, self.request, None)
         self.assertEqual(authd, {"status": "ok"})
 
     def test_get_services_info(self):
@@ -73,10 +73,10 @@ class Test_NooneAuthorizer(unittest.TestCase):
         self.request = MockRequest()
 
     def test_is_protected(self):
-        self.assertEqual(self.authorizer.is_protected(self.info), True)
+        self.assertEqual(self.authorizer.is_protected(self.info, None), True)
 
     def test_is_authorized(self):
-        authd = self.authorizer.is_authorized(self.info, self.request)
+        authd = self.authorizer.is_authorized(self.info, self.request, None)
         self.assertEqual(authd, {"status": "deny"})
 
     def test_get_services_info(self):
@@ -96,11 +96,11 @@ class Test_SingleDegradingAuthorizer(unittest.TestCase):
         self.request = MockRequest()
 
     def test_is_protected(self):
-        self.assertEqual(self.authorizer.is_protected(self.badInfo), True)
-        self.assertEqual(self.authorizer.is_protected(self.okayInfo), False)
+        self.assertEqual(self.authorizer.is_protected(self.badInfo, None), True)
+        self.assertEqual(self.authorizer.is_protected(self.okayInfo, None), False)
 
     def test_is_authorized(self):
-        authd = self.authorizer.is_authorized(self.badInfo, self.request)
+        authd = self.authorizer.is_authorized(self.badInfo, self.request, None)
         self.assertEqual(authd['status'], "redirect")
 
     def test_get_services_info(self):
@@ -176,8 +176,8 @@ class Test_RulesAuthorizer(unittest.TestCase):
 
     def test_is_protected(self):
         self.badInfo.auth_rules = {"allowed": ["test"]}
-        self.assertEqual(self.authorizer.is_protected(self.badInfo), True)
-        self.assertEqual(self.authorizer.is_protected(self.okayInfo), False)
+        self.assertEqual(self.authorizer.is_protected(self.badInfo, None), True)
+        self.assertEqual(self.authorizer.is_protected(self.okayInfo, None), False)
 
     def test_is_authorized(self):
 
@@ -185,31 +185,31 @@ class Test_RulesAuthorizer(unittest.TestCase):
         self.authorizer.use_jwt = False
 
         # No auth rules should pass for all
-        authd = self.authorizer.is_authorized(self.okayInfo, self.emptyRequest)
+        authd = self.authorizer.is_authorized(self.okayInfo, self.emptyRequest, None)
         self.assertEqual(authd['status'], "ok")
-        authd = self.authorizer.is_authorized(self.okayInfo, self.tokenRequest)
+        authd = self.authorizer.is_authorized(self.okayInfo, self.tokenRequest, None)
         self.assertEqual(authd['status'], "ok")
-        authd = self.authorizer.is_authorized(self.okayInfo, self.cookieRequest)
+        authd = self.authorizer.is_authorized(self.okayInfo, self.cookieRequest, None)
         self.assertEqual(authd['status'], "ok")
 
         # Set allowed role of "test"
         # Should fail for empty, pass for cookie/token
         self.badInfo.auth_rules = {"allowed": ["test"]}
-        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest, None)
         self.assertEqual(authd['status'], "deny")
-        authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest, None)
         self.assertEqual(authd['status'], "ok")
-        authd = self.authorizer.is_authorized(self.badInfo, self.cookieRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.cookieRequest, None)
         self.assertEqual(authd['status'], "ok")
 
         # Set allowed role of "!test"
         # Should fail for all, as test != !test
         self.badInfo.auth_rules = {"allowed": ["!test"]}
-        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest, None)
         self.assertEqual(authd['status'], "deny")
-        authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest, None)
         self.assertEqual(authd['status'], "deny")
-        authd = self.authorizer.is_authorized(self.badInfo, self.cookieRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.cookieRequest, None)
         self.assertEqual(authd['status'], "deny")
 
 
@@ -217,11 +217,11 @@ class Test_RulesAuthorizer(unittest.TestCase):
         # Should redirect for empty, pass for cookie/token
         self.badInfo.auth_rules = {"allowed": ["test"], "tiers":
             [{"identifier":"http://localhost:5004/"+self.okayIdent}]}
-        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest, None)
         self.assertEqual(authd['status'], "redirect")
-        authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest, None)
         self.assertEqual(authd['status'], "ok")
-        authd = self.authorizer.is_authorized(self.badInfo, self.cookieRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.cookieRequest, None)
         self.assertEqual(authd['status'], "ok")
 
     def test_is_authorized_jwt(self):
@@ -230,42 +230,42 @@ class Test_RulesAuthorizer(unittest.TestCase):
         self.authorizer.use_jwt = True
 
         # No auth rules should still pass for all
-        authd = self.authorizer.is_authorized(self.okayInfo, self.emptyRequest)
+        authd = self.authorizer.is_authorized(self.okayInfo, self.emptyRequest, None)
         self.assertEqual(authd['status'], "ok")
-        authd = self.authorizer.is_authorized(self.okayInfo, self.jwtTokenRequest)
+        authd = self.authorizer.is_authorized(self.okayInfo, self.jwtTokenRequest, None)
         self.assertEqual(authd['status'], "ok")
-        authd = self.authorizer.is_authorized(self.okayInfo, self.jwtCookieRequest)
+        authd = self.authorizer.is_authorized(self.okayInfo, self.jwtCookieRequest, None)
         self.assertEqual(authd['status'], "ok")
 
         # Set allowed role of "test"
         # Should fail for empty, pass for cookie/token
         self.badInfo.auth_rules = {"allowed": ["test"]}
-        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest, None)
         self.assertEqual(authd['status'], "deny")
-        authd = self.authorizer.is_authorized(self.badInfo, self.jwtTokenRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.jwtTokenRequest, None)
         self.assertEqual(authd['status'], "ok")
-        authd = self.authorizer.is_authorized(self.badInfo, self.jwtCookieRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.jwtCookieRequest, None)
         self.assertEqual(authd['status'], "ok")
 
         # Set allowed role of "!test"
         # Should fail for all, as test != !test
         self.badInfo.auth_rules = {"allowed": ["!test"]}
-        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest, None)
         self.assertEqual(authd['status'], "deny")
-        authd = self.authorizer.is_authorized(self.badInfo, self.jwtTokenRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.jwtTokenRequest, None)
         self.assertEqual(authd['status'], "deny")
-        authd = self.authorizer.is_authorized(self.badInfo, self.jwtCookieRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.jwtCookieRequest, None)
         self.assertEqual(authd['status'], "deny")
 
         # Set a degraded tier
         # Should redirect for empty, pass for cookie/token
         self.badInfo.auth_rules = {"allowed": ["test"], "tiers":
             [{"identifier":"http://localhost:5004/"+self.okayIdent}]}
-        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest, None)
         self.assertEqual(authd['status'], "redirect")
-        authd = self.authorizer.is_authorized(self.badInfo, self.jwtTokenRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.jwtTokenRequest, None)
         self.assertEqual(authd['status'], "ok")
-        authd = self.authorizer.is_authorized(self.badInfo, self.jwtCookieRequest)
+        authd = self.authorizer.is_authorized(self.badInfo, self.jwtCookieRequest, None)
         self.assertEqual(authd['status'], "ok")
 
 
