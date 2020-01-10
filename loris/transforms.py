@@ -11,7 +11,6 @@ import platform
 import random
 import string
 import subprocess
-import pdb
 
 try:
     from cStringIO import BytesIO
@@ -57,28 +56,60 @@ def _validate_color_profile_conversion_config(config):
             'LittleCMS support.  See http://www.littlecms.com/ for instructions.'
         )
 
-def select_from_ptiff( im, image_request,image_info):#If it is a multiframe tiff
+def select_from_ptiff(im, image_info, size_param, region_param):#If it is a multiframe tiff
+    index = 0
+    wh = [int(size_param.w), int(size_param.h)]
+    im_dims = []
+
+    for i in range(len(image_info.sizes)):
+        im_dims += [list(image_info.sizes[i].values())]
+
+
+    heights = [el[1] for el in im_dims] #all the heights in ptiff
+    crop_height = region_param.pixel_h # requested image height
+    max_height = heights[0] #largest height in ptiff
+    req_height = wh[1]
+
+    widths = [el[0] for el in im_dims] #all the widths in ptiff
+    crop_width = region_param.pixel_w # requested image width
+    max_width = widths[0] #largest width in ptiff
+    req_width = wh[0]
+
+    desired_wh = [0,0]  #desired width and height
+
+    desired_wh[0] = (max_width/crop_width) * req_width
+    desired_wh[1] = (max_height/crop_height) * req_height
     try:
-        index = 0
-        ## if height is found
-        if 'height' in image_info.sizes[0]:
-            for i in range(im.n_frames):
-                frame_dim = list(image_info.sizes[i].values())
-                frame_dim = str(frame_dim[0])+','+str(frame_dim[1])
-                if frame_dim == image_request.size_value:
-                   index = i # match one of the other tiffs
-        else:
-            for i in range(im.n_frames):
-                frame_dim = str(image_info.sizes[i]['width'])
+        index = im_dims.index(desired_wh)
+    except ValueError:
+        try:
+            index =  max([im_dims.index(el) for el in im_dims if el[0] >= desired_wh[0] and el[1] >= desired_wh[1]])
+        except ValueError:
+            pass
 
-                if frame_dim == image_request.size_value:
-                    index = i # match one of the other tiffs
-
-        im.seek(index) ## equip the appropriate tiff
-    except:
-        pass
-
+    im.seek(index) ## equip the appropriate tiff
     return im
+
+def ptiff_scale_crop_box(box, im, image_info):
+    index = im.tell()
+    if index == 0:
+        return box
+
+    max_width = image_info.sizes[0]['width']
+    index_width = image_info.sizes[index]['width']
+
+    max_height = image_info.sizes[0]['height']
+    index_height = image_info.sizes[index]['height']
+
+    crop_w_scale = 0.0
+    crop_h_scale = 0.0
+
+    crop_w_scale = float(index_width)/max_width
+    crop_h_scale = float(index_height)/max_height
+
+    scaled_box = [x * crop_w_scale if box.index(x) % 2 == 0 else x* crop_h_scale for x in box ]
+    return tuple(scaled_box)
+
 
 class _AbstractTransformer(object):
     def __init__(self, config):
@@ -129,12 +160,13 @@ class _AbstractTransformer(object):
 
         '''
 
+        size_param = image_request.size_param(image_info=image_info)
+        region_param = image_request.region_param(image_info=image_info)
         ## if ptiff is enabled
         ptiff_handling = self.config['ptiff'] and im.format == 'TIFF' and image_request.size_value != 'full'
         if ptiff_handling:
-           im = select_from_ptiff(im, image_request, image_info)
+           im = select_from_ptiff(im,image_info, size_param, region_param)
 
-        region_param = image_request.region_param(image_info=image_info)
 
         if crop and region_param.canonical_uri_value != 'full':
             # For PIL: "The box is a 4-tuple defining the left, upper, right,
@@ -146,10 +178,12 @@ class _AbstractTransformer(object):
                 region_param.pixel_y + region_param.pixel_h
             )
             logger.debug('cropping to: %r', box)
+            if ptiff_handling:
+                box = ptiff_scale_crop_box(box, im, image_info)
+
             im = im.crop(box)
 
         # resize
-        size_param = image_request.size_param(image_info=image_info)
 
         if size_param.canonical_uri_value != 'full':
             wh = [int(size_param.w), int(size_param.h)]
