@@ -5,35 +5,86 @@
 #    pip-compile --output-file requirements_test.txt requirements_test.in
 #
 asn1crypto==0.24.0
+    # via
+    #   -r requirements.txt
+    #   cryptography
 attrs==17.4.0
+    # via
+    #   -r requirements.txt
+    #   hypothesis
 certifi==2018.1.18
+    # via
+    #   -r requirements.txt
+    #   requests
 cffi==1.11.5
+    # via
+    #   -r requirements.txt
+    #   cryptography
 chardet==3.0.4
+    # via
+    #   -r requirements.txt
+    #   requests
 configobj==5.0.0
-configparser==3.5.0       # via flake8
+    # via -r requirements.txt
 coverage==4.4.1
+    # via
+    #   -r requirements_test.in
+    #   hypothesis
+    #   pytest-cov
 cryptography==2.1.4
-enum34==1.1.6
+    # via -r requirements.txt
 flake8==3.5.0
-funcsigs==1.0.2           # via mock
+    # via -r requirements_test.in
 hypothesis==3.46.1
+    # via -r requirements_test.in
 idna==2.6
-ipaddress==1.0.19
-mccabe==0.6.1             # via flake8
-mock==2.0.0               # via responses
+    # via
+    #   -r requirements.txt
+    #   cryptography
+    #   requests
+mccabe==0.6.1
+    # via flake8
+mock==2.0.0
+    # via responses
 netaddr==0.7.19
-olefile==0.45.1
-pbr==3.1.1                # via mock
-pillow==4.3.0
-py==1.5.2                 # via pytest
-pycodestyle==2.3.1        # via flake8
+    # via -r requirements.txt
+pbr==3.1.1
+    # via mock
+pillow==8.2.0
+    # via -r requirements.txt
+py==1.5.2
+    # via pytest
+pycodestyle==2.3.1
+    # via flake8
 pycparser==2.18
-pyflakes==1.6.0           # via flake8
+    # via
+    #   -r requirements.txt
+    #   cffi
+pyflakes==1.6.0
+    # via flake8
 pyjwt==1.5.3
+    # via -r requirements.txt
 pytest-cov==2.5.1
+    # via -r requirements_test.in
 pytest==3.1.3
+    # via
+    #   -r requirements_test.in
+    #   pytest-cov
 requests==2.18.4
+    # via
+    #   -r requirements.txt
+    #   responses
 responses==0.3.0
+    # via -r requirements_test.in
 six==1.11.0
+    # via
+    #   -r requirements.txt
+    #   cryptography
+    #   mock
+    #   responses
 urllib3==1.22
+    # via
+    #   -r requirements.txt
+    #   requests
 werkzeug==0.14.1
+    # via -r requirements.txt
